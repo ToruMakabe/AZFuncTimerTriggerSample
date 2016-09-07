@@ -14,7 +14,7 @@ module.exports = function (context, myTimer) {
   });
 
   blobSvc.appendFromText(myContainer, startDateForFileName + '.json', 'text to be appended', function(err, result, response){
-    if(!err) context.log(err);
+    if(err) context.log(err);
   });
 
   context.done();
