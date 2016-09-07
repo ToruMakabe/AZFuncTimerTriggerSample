@@ -1,0 +1,18 @@
+{
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0 0 0 * * 0"
+    },
+    {
+      "name": "myOutputBlob",
+      "type": "blob",
+      "path": "billingdata/{timerTrigger}",
+      "connection": "azfuncpoc_STORAGE",
+      "direction": "out"
+    }
+  ],
+  "disabled": false
+}
