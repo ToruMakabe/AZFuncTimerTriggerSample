@@ -19,7 +19,7 @@ const aggregationGranularity = 'Daily';
 const showDetails = true;
 
 
-module.exports = function (context, myTimer) {
+module.exports = function (context, myTimer, myOutputBlob) {
 
   context.log('Getting Billing Data: ', now);
 
