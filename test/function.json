@@ -5,13 +5,6 @@
       "type": "timerTrigger",
       "direction": "in",
       "schedule": "0 0 * * * *"
-    },
-    {
-      "name": "myOutputBlob",
-      "type": "blob",
-      "path": "billingdata/%rand-guid%",
-      "connection": "azfuncpoc_STORAGE",
-      "direction": "out"
     }
   ],
   "disabled": false
