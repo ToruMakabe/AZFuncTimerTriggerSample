@@ -14,13 +14,11 @@ module.exports = function (context, myTimer) {
   });
 
   blobSvc.appendFromText(myContainer, startDateForFileName + '.json', 'text to be appended', function(err, result, response){
-    if(err) {
-      if (err.statusCode == 404) {
-        blobSvc.createAppendBlobFromText(myContainer, startDateForFileName + '.json', 'text to be appended', function(err, result, response){
-          if(err) context.log(err);
-        });
-      }
-    } else {
+    if (err.statusCode == 404) {
+      blobSvc.createAppendBlobFromText(myContainer, startDateForFileName + '.json', 'text to be appended', function(err, result, response){
+        if(err) context.log(err);
+      });
+    } else if (err) {
       context.log(err);
     }
   });
