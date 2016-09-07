@@ -8,6 +8,8 @@ module.exports = function (context, myTimer, myOutputBlob) {
 
   context.log('My contexts are... ', context);
 
+  context.log('My connection is...', process.env[azfuncpoc_STORAGE]);
+
   context.log('Before copying... ', myOutputBlob);
 
   myOutputBlob = 'test' ;
