@@ -8,7 +8,7 @@ const startDateForFileName = twoDaysAgo.getUTCFullYear() + '-' + (twoDaysAgo.get
 
 module.exports = function (context, myTimer) {
 
-  const blobSvc = azureStorage.azure.createBlobService(process.env.azfuncpoc_STORAGE);
+  const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
   blobSvc.createContainerIfNotExists(myContainer, function(err, result, response){
     if(err) context.log(err);
   });
