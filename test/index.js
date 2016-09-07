@@ -6,7 +6,7 @@ module.exports = function (context, myTimer, myOutputBlob) {
 
   context.log('Starting... ', now);
 
-  context.log('myTimer binsing is... ', myTimer);
+  context.log('My contexts are... ', context);
 
   context.log('Before copying... ', myOutputBlob);
 
