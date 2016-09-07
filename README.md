@@ -1,0 +1,1 @@
+Smaple code of Azure Functions timer trigger.
