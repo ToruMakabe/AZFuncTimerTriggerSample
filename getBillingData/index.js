@@ -1,6 +1,5 @@
 'use strict';
 
-const azureStorage = require('azure-storage');
 const msRestAzure = require('ms-rest-azure');
 const commerce = require('azure-arm-commerce');
 const url = require('url');
@@ -19,76 +18,46 @@ const endDate = yesterday.toISOString();
 const aggregationGranularity = 'Daily';
 const showDetails = true;
 
-const myContainer = 'billingdata'
-const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
 
-module.exports = (context, myTimer, myOutputBlob) => {
+module.exports = function (context, myTimer, myOutputBlob) {
 
-  msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, (err, credentials) => {
-    if (err) context.log(err);
+  context.log('Getting Billing Data: ', now);
+
+  msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, function (err, credentials) {
+    if (err) return console.log(err);
     credentials.subscriptionId = subscriptionId;
     const client =  commerce.createUsageAggregationManagementClient(credentials);
     var continuationToken = null;
 
-    function createContainer () {
-      return new Promise( (resolve, reject) => {
-        blobSvc.createContainerIfNotExists(myContainer, (err, result, response) => {
-          (!err) ? resolve() : reject(err);
-        });
+    function getUsage(continuationToken, callback) {
+    
+      client.usageAggregates.get(startDate, endDate, aggregationGranularity, showDetails, continuationToken,    function (err, response) {
+        if (err) return console.log(err);
+    
+        if (response.nextLink) {
+          continuationToken = url.parse(response.nextLink, true).query.continuationToken;
+        } else {
+          continuationToken = null;
+        }
+    
+      response.usageAggregations.forEach(function(element) {
+    //          console.log(element.properties.meterName);
+             console.log(element);
+      }, this);
+  
+        callback(continuationToken); 
+    
       });
     }
 
-    function getUsage() {
-      return new Promise( (resolve, reject) => {
-        client.usageAggregates.get(startDate, endDate, aggregationGranularity, showDetails, continuationToken,  (err, response) => {
-          if (err) reject(err);
-      
-          if (response.nextLink) {
-            continuationToken = url.parse(response.nextLink, true).query.continuationToken;
-          } else {
-            continuationToken = null;
-          }
-   
-          resolve(response.usageAggregations);
-      
-        });
+    function loop(continuationToken) {
+      getUsage(continuationToken, function(continuationToken) {
+        if (continuationToken !== null) loop(continuationToken);
+        else return;
       });
     }
 
-    function createOrAppendText (usageAggregations) {
-      return new Promise( (resolve, reject) => {
-        blobSvc.appendFromText(myContainer, startDateForFileName + '.json', usageAggregations, (err, result, response) => {
-          if (err.statusCode == 404) {
-            blobSvc.createAppendBlobFromText(myContainer, startDateForFileName + '.json', usageAggregations, (err, result, response) => {
-              (!err) ? resolve() : reject(err);
-            });
-          } else if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-    }
-
-    const promise = (function loop() {
-      return createContainer()
-        .then(getUsage())
-        .then(() => {
-          if (continuationToken) {
-            return createOrAppendText(usageAggregations).then(loop);
-          } else {
-            return createOrAppendText(usageAggregations);
-          }
-        })
-        .catch((err) => {
-          context.log(err);
-        });
-    })();
-
-    promise.then( () => {
-      context.log('Getting bliing info completed');
-    });
+    loop(continuationToken);
 
   });
    
