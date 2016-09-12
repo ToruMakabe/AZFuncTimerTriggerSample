@@ -1,8 +1,11 @@
 'use strict';
 
+const azureStorage = require('azure-storage');
 const msRestAzure = require('ms-rest-azure');
 const commerce = require('azure-arm-commerce');
 const url = require('url');
+const async = require('async');
+const util = require('util');
 
 const clientId = process.env['CLIENT_ID'];
 const domain = process.env['DOMAIN'];
@@ -18,48 +21,96 @@ const endDate = yesterday.toISOString();
 const aggregationGranularity = 'Daily';
 const showDetails = true;
 
+const myContainerName = 'billingdata'
+const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
 
-module.exports = function (context, myTimer, myOutputBlob) {
+//Main flow
 
-  context.log('Getting Billing Data: ', now);
+module.exports = (context, myTimer) => {
 
-  msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, function (err, credentials) {
-    if (err) return console.log(err);
+  msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, (err, credentials) => {
+    if (err) return context.log(err);
     credentials.subscriptionId = subscriptionId;
-    const client =  commerce.createUsageAggregationManagementClient(credentials);
-    var continuationToken = null;
 
-    function getUsage(continuationToken, callback) {
-    
-      client.usageAggregates.get(startDate, endDate, aggregationGranularity, showDetails, continuationToken,    function (err, response) {
-        if (err) return console.log(err);
-    
-        if (response.nextLink) {
-          continuationToken = url.parse(response.nextLink, true).query.continuationToken;
-        } else {
-          continuationToken = null;
-        }
-    
-      response.usageAggregations.forEach(function(element) {
-    //          console.log(element.properties.meterName);
-             console.log(element);
-      }, this);
-  
-        callback(continuationToken); 
-    
-      });
-    }
-
-    function loop(continuationToken) {
-      getUsage(continuationToken, function(continuationToken) {
-        if (continuationToken !== null) loop(continuationToken);
-        else return;
-      });
-    }
-
-    loop(continuationToken);
+    async.series([
+      function (callback) {
+        createContainer((err) => {
+          if (err) return callback(err);
+          callback(null);
+        });
+      },
+      function (callback) {
+        getUsageLoop(credentials, (err) => {
+          if (err) return callback(err);
+          callback(null);
+        });
+      }
+    ],
+    function (err) {
+      if (err) {
+        context.log(util.format('Error occurred in one of the operations.\n%s', 
+            util.inspect(err, { depth: null })));
+      }
+      context.log('Done.');
+      context.done();
+    });
 
   });
-   
-  context.done();
+
 };
+
+
+// functions
+function createContainer(callback) {
+  context.log('Creatig a container...');
+  blobSvc.createContainerIfNotExists(myContainerName, (err, result, response) => {
+    if (err) return callback(err);
+    context.log('Created container: ' + result.created);
+    return callback(null);
+  });
+}
+
+function createUsageBlob (usageAggregates, index, callback) {
+  blobSvc.createBlockBlobFromText(myContainerName, startDateForFileName + '_' + index + '.json', usageAggregates, (err, result, response) => {
+    if (err) return callback(err); 
+    return callback(null);
+  });
+}
+
+function getUsage(credentials, continuationToken, index, callback) {
+  context.log('Getting billing information...');
+  const client =  commerce.createUsageAggregationManagementClient(credentials);
+
+  client.usageAggregates.get(startDate, endDate, aggregationGranularity, showDetails, continuationToken, (err, response) => {
+    if (err) return callback(err);
+    if (response.nextLink) {
+      continuationToken = url.parse(response.nextLink, true).query.continuationToken;
+    } else {
+      continuationToken = null;
+    }
+    
+    const usageAggregates = JSON.stringify(response.usageAggregations);
+    createUsageBlob(usageAggregates, index, (err) => {
+      if (err) return callback(err);
+      context.log('Created file #:' + index)
+      return callback(null, continuationToken);
+    });
+  });
+}
+
+function getUsageLoop(credentials, callback){
+  function iterate(credentials, continuationToken, index){
+    context.log('Iteration #' + index);
+    getUsage(credentials, continuationToken, index, (err, continuationToken) => {
+      if (err) {
+        return callback(err);
+      }
+      if (continuationToken === null) {
+        return callback(null);
+      }
+      iterate(credentials, continuationToken, index +1);
+    });
+  }
+  let continuationToken;
+  iterate(credentials, continuationToken, 1);
+}
