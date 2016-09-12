@@ -63,7 +63,7 @@ module.exports = (context, myTimer) => {
 };
 
 
-// functions
+//Functions
 function createContainer(callback) {
   blobSvc.createContainerIfNotExists(myContainerName, (err, result, response) => {
     if (err) return callback(err);
