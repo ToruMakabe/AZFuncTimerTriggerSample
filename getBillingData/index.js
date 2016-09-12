@@ -7,10 +7,10 @@ const url = require('url');
 const async = require('async');
 const util = require('util');
 
-const clientId = process.env['CLIENT_ID'];
-const domain = process.env['DOMAIN'];
-const secret = process.env['APPLICATION_SECRET'];
-const subscriptionId = process.env['AZURE_SUBSCRIPTION_ID'];
+const clientId = process.env.CLIENT_ID;
+const domain = process.env.DOMAIN;
+const secret = process.env.APPLICATION_SECRET;
+const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
 
 const now = new Date(Date.now());
 const twoDaysAgo = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() -2));
