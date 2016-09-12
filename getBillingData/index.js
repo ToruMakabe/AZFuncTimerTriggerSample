@@ -25,7 +25,6 @@ const myContainerName = 'billingdata'
 const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
 
 //Main flow
-
 module.exports = (context, myTimer) => {
 
   msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, (err, credentials) => {
