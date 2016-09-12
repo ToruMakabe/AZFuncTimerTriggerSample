@@ -41,6 +41,7 @@ module.exports = (context, myTimer) => {
         });
       },
       function (callback) {
+        context.log('Getting bliing data...');
         getUsageLoop(credentials, (err, index) => {
           if (err) return callback(err);
           context.log('Created ' + index + ' file(s)');
