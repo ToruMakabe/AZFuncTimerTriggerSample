@@ -21,7 +21,7 @@ const endDate = yesterday.toISOString();
 const aggregationGranularity = 'Daily';
 const showDetails = true;
 
-const myContainerName = 'billingdata'
+const myContainerName = 'billingdata';
 const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
 
 //Main flow
@@ -33,14 +33,17 @@ module.exports = (context, myTimer) => {
 
     async.series([
       function (callback) {
-        createContainer((err) => {
+        context.log('Creatig a container...');
+        createContainer((err, result) => {
           if (err) return callback(err);
+          context.log('Created container: ' + result);
           callback(null);
         });
       },
       function (callback) {
-        getUsageLoop(credentials, (err) => {
+        getUsageLoop(credentials, (err, index) => {
           if (err) return callback(err);
+          context.log('Created ' + index + ' file(s)');
           callback(null);
         });
       }
@@ -61,11 +64,9 @@ module.exports = (context, myTimer) => {
 
 // functions
 function createContainer(callback) {
-  context.log('Creatig a container...');
   blobSvc.createContainerIfNotExists(myContainerName, (err, result, response) => {
     if (err) return callback(err);
-    context.log('Created container: ' + result.created);
-    return callback(null);
+    return callback(null, result.created);
   });
 }
 
@@ -77,7 +78,6 @@ function createUsageBlob (usageAggregates, index, callback) {
 }
 
 function getUsage(credentials, continuationToken, index, callback) {
-  context.log('Getting billing information...');
   const client =  commerce.createUsageAggregationManagementClient(credentials);
 
   client.usageAggregates.get(startDate, endDate, aggregationGranularity, showDetails, continuationToken, (err, response) => {
@@ -91,7 +91,6 @@ function getUsage(credentials, continuationToken, index, callback) {
     const usageAggregates = JSON.stringify(response.usageAggregations);
     createUsageBlob(usageAggregates, index, (err) => {
       if (err) return callback(err);
-      context.log('Created file #:' + index)
       return callback(null, continuationToken);
     });
   });
@@ -99,13 +98,12 @@ function getUsage(credentials, continuationToken, index, callback) {
 
 function getUsageLoop(credentials, callback){
   function iterate(credentials, continuationToken, index){
-    context.log('Iteration #' + index);
     getUsage(credentials, continuationToken, index, (err, continuationToken) => {
       if (err) {
         return callback(err);
       }
       if (continuationToken === null) {
-        return callback(null);
+        return callback(null, index);
       }
       iterate(credentials, continuationToken, index +1);
     });
