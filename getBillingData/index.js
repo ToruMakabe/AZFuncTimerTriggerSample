@@ -51,7 +51,7 @@ module.exports = (context, myTimer) => {
     ],
     function (err) {
       if (err) {
-        context.log(util.format('Error occurred in one of the operations.\n%s', 
+        context.log(util.format('Error occurred in the flow.\n%s', 
             util.inspect(err, { depth: null })));
       }
       context.log('Done.');
