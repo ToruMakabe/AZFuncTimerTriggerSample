@@ -21,7 +21,7 @@ const endDate = yesterday.toISOString();
 const aggregationGranularity = 'Daily';
 const showDetails = true;
 
-const myContainerName = 'billingdata';
+const myContainerName = 'usagedata';
 const blobSvc = azureStorage.createBlobService(process.env.azfuncpoc_STORAGE);
 
 //Main flow
